@@ -31,22 +31,25 @@ private:
 Task echo(Reactor& reactor, Socket socket) {
   char data[1024];
   for (;;) {
-    // Read some bytes
+    // Non-blocking read
     co_await reactor.event(socket, POLLIN);
     ssize_t bytes = read(socket, data, sizeof(data));
     if (bytes == 0) {
       co_return;
     }
 
-    // Write every byte read
+    // Non-blocking write
     int written = 0;
     while (written < bytes) {
-      co_await reactor.event(socket, POLLOUT);
       ssize_t n = write(socket, data, bytes);
       if (n == 0) {
         co_return;
       }
-      written += n;
+      if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        co_await reactor.event(socket, POLLOUT);
+      } else {
+        written += n;
+      }
     }
   }
 }
