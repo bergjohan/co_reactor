@@ -1,4 +1,5 @@
 #include "reactor.h"
+#include <cerrno>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -41,7 +42,7 @@ Task echo(Reactor& reactor, Socket socket) {
     // Non-blocking write
     int written = 0;
     while (written < bytes) {
-      ssize_t n = write(socket, data, bytes);
+      ssize_t n = write(socket, data + written, bytes - written);
       if (n == 0) {
         co_return;
       }
